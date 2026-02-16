@@ -222,7 +222,7 @@ const OnboardingScreen = ({
   return (
     <div 
       ref={containerRef}
-      className="h-screen flex flex-col bg-white select-none overflow-hidden"
+      className="min-h-screen flex flex-col bg-white select-none overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -260,7 +260,7 @@ const OnboardingScreen = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 min-h-0">
+      <div className="flex-1 flex flex-col items-center justify-start px-4 sm:px-6 min-h-0">
         {/* Logo at top center */}
         <div className="mb-3 sm:mb-6 w-full max-w-sm flex justify-center">
           <div className="relative">
@@ -274,7 +274,7 @@ const OnboardingScreen = ({
         
         {/* City Image with swipe hint */}
         <div className="mb-3 sm:mb-6 w-full max-w-sm relative">
-          <div className="relative flex-1 max-h-[45vh] rounded-3xl overflow-hidden shadow-xl">
+          <div className="relative h-[35vh] sm:h-[45vh] rounded-3xl overflow-hidden shadow-xl">
             <img
               src={imageUrl}
               alt="Travel destination"
