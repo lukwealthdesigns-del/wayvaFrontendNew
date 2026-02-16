@@ -232,7 +232,7 @@ const OnboardingScreen = ({
       {getSwipeIndicator()}
       
       {/* Header with Skip and Previous */}
-      <div className="px-4 pt-3 sm:px-6 sm:pt-6">
+      <div className="px-4 pt-6 sm:px-6 sm:pt-6">
         <div className="flex items-center justify-between">
           <div className="min-w-[44px]">
             {showPrevious && (
@@ -259,8 +259,11 @@ const OnboardingScreen = ({
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-start px-4 sm:px-6 min-h-0">
+      {/* Gap between Header and Main Content */}
+      <div className="h-8 sm:h-6"></div>
+
+      {/* Main Content (City Image + Text) */}
+      <div className="flex flex-col items-center px-4 sm:px-6">
         {/* Logo at top center */}
         <div className="mb-3 sm:mb-6 w-full max-w-sm flex justify-center">
           <div className="relative">
@@ -330,6 +333,9 @@ const OnboardingScreen = ({
           </p>
         </div>
       </div>
+
+      {/* Gap between Main Content and Footer */}
+      <div className="h-10 sm:h-8"></div>
 
       {/* Footer with Progress & Button */}
       <div className="px-4 sm:px-6 pb-4 sm:pb-8">
