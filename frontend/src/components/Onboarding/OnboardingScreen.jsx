@@ -222,7 +222,7 @@ const OnboardingScreen = ({
   return (
     <div 
       ref={containerRef}
-      className="h-screen flex flex-col bg-white select-none overflow-hidden"
+      className="h-screen flex flex-col space-y-0 bg-white select-none overflow-hidden"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -250,7 +250,7 @@ const OnboardingScreen = ({
             {showSkip && (
               <button
                 onClick={onSkip}
-                className="px-3 py-1.5 text-gray-600 hover:text-gray-800 font-medium text-sm transition rounded-lg hover:bg-gray-100 active:bg-gray-200"
+                className="px-3 py-1 text-gray-600 hover:text-gray-800 font-medium text-sm transition rounded-lg hover:bg-gray-100 active:bg-gray-200"
               >
                 Skip
               </button>
