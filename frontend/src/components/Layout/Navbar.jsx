@@ -35,26 +35,43 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
     }
   }, [propLocation]);
 
-  // **FIXED: Automatic location detection without asking**
   const detectLocation = async () => {
     setLoadingLocation(true);
     setLocationError(false);
-    
+
     try {
-      // **METHOD 1: Try to get location from localStorage first (fast)**
+      // METHOD 1: Try browser GPS first (most accurate)
+      console.log('Attempting browser geolocation...');
+      const geoSuccess = await tryBrowserGeolocation();
+      if (geoSuccess) return;
+
+      // METHOD 2: Fall back to IP-based location if GPS denied/failed
+      console.log('Falling back to IP-based location...');
+      const ipLocation = await getLocationByIP();
+      if (ipLocation.success) {
+        console.log('IP location successful:', ipLocation.data.displayName);
+        handleLocationSuccess(ipLocation.data);
+        return;
+      }
+
+      // METHOD 3: Last resort — use cached localStorage (may be stale)
+      console.log('Trying cached localStorage location...');
       const savedLocation = localStorage.getItem('wayva_user_location');
       if (savedLocation) {
         try {
           const parsedLocation = JSON.parse(savedLocation);
-          if (parsedLocation.displayName && parsedLocation.coordinates) {
-            console.log('Using saved location from localStorage:', parsedLocation.displayName);
+          const savedAt = parsedLocation.savedAt || 0;
+          const thirtyMinutes = 30 * 60 * 1000;
+
+          if (
+            parsedLocation.displayName &&
+            parsedLocation.coordinates &&
+            Date.now() - savedAt < thirtyMinutes
+          ) {
+            console.log('Using cached location:', parsedLocation.displayName);
             setUserLocation(parsedLocation.displayName);
             setCoordinates(parsedLocation.coordinates);
-            
-            if (onLocationDetected) {
-              onLocationDetected(parsedLocation);
-            }
-            
+            if (onLocationDetected) onLocationDetected(parsedLocation);
             setLoadingLocation(false);
             return;
           }
@@ -63,19 +80,11 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
         }
       }
 
-      // **METHOD 2: Try IP-based location (works without permission)**
-      console.log('Attempting IP-based location detection...');
-      const ipLocation = await getLocationByIP();
-      
-      if (ipLocation.success) {
-        console.log('IP location successful:', ipLocation.data.displayName);
-        handleLocationSuccess(ipLocation.data);
-      } else {
-        // **METHOD 3: Try browser geolocation with timeout**
-        console.log('Trying browser geolocation...');
-        await tryBrowserGeolocation();
-      }
-      
+      // All methods failed
+      setUserLocation("Location unavailable");
+      setLocationError(true);
+      setLoadingLocation(false);
+
     } catch (error) {
       console.error('Location detection failed:', error);
       setUserLocation("Location unavailable");
@@ -84,14 +93,12 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
     }
   };
 
-  // Get location by IP (no permission needed)
+  // Get location by IP (fallback only)
   const getLocationByIP = async () => {
     try {
-      // Try ipapi.co first
       const response = await fetch('https://ipapi.co/json/');
       if (response.ok) {
         const data = await response.json();
-        
         const locationData = {
           displayName: `${data.city || 'Unknown'}, ${data.region || data.country_name || ''}`,
           city: data.city,
@@ -99,20 +106,17 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
           coordinates: { lat: data.latitude, lon: data.longitude },
           source: 'ipapi'
         };
-        
         return { success: true, data: locationData };
       }
     } catch (error) {
       console.log('ipapi.co failed, trying ipinfo.io...');
     }
-    
+
     try {
-      // Fallback to ipinfo.io
       const response = await fetch('https://ipinfo.io/json?token=test');
       if (response.ok) {
         const data = await response.json();
         const [lat, lon] = data.loc ? data.loc.split(',').map(Number) : [0, 0];
-        
         const locationData = {
           displayName: `${data.city || 'Unknown'}, ${data.region || data.country || ''}`,
           city: data.city,
@@ -120,17 +124,16 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
           coordinates: { lat, lon },
           source: 'ipinfo'
         };
-        
         return { success: true, data: locationData };
       }
     } catch (error) {
       console.log('ipinfo.io also failed');
     }
-    
+
     return { success: false, error: 'IP location services failed' };
   };
 
-  // Try browser geolocation with better error handling
+  // Browser geolocation — now runs FIRST with high accuracy
   const tryBrowserGeolocation = () => {
     return new Promise((resolve) => {
       if (!("geolocation" in navigator)) {
@@ -138,61 +141,47 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
         resolve(false);
         return;
       }
-      
+
       const options = {
-        enableHighAccuracy: false, // Set to false for faster response
-        timeout: 8000, // Shorter timeout
-        maximumAge: 300000 // 5 minutes cache
+        enableHighAccuracy: true,  // Fixed: was false, now true for accurate GPS
+        timeout: 10000,
+        maximumAge: 0              // Fixed: was 300000, now 0 to always get fresh position
       };
-      
+
       const successCallback = async (position) => {
         try {
           const { latitude, longitude } = position.coords;
           console.log('Browser geolocation successful:', { latitude, longitude });
-          
+
           const locationData = await reverseGeocode(latitude, longitude);
           const fullLocationData = {
             ...locationData,
             coordinates: { lat: latitude, lon: longitude },
             source: 'browser_geolocation'
           };
-          
+
           handleLocationSuccess(fullLocationData);
           resolve(true);
-          
+
         } catch (error) {
           console.error('Reverse geocoding failed:', error);
-          // Still use coordinates even if reverse geocoding fails
           const { latitude, longitude } = position.coords;
           const locationData = {
             displayName: `Location (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`,
             coordinates: { lat: latitude, lon: longitude },
             source: 'browser_coords_only'
           };
-          
+
           handleLocationSuccess(locationData);
           resolve(true);
         }
       };
-      
+
       const errorCallback = (error) => {
         console.warn('Browser geolocation error:', error.code, error.message);
-        
-        // Provide fallback based on error
-        let fallbackName = "Location unavailable";
-        if (error.code === error.PERMISSION_DENIED) {
-          fallbackName = "Location permission denied";
-        } else if (error.code === error.TIMEOUT) {
-          fallbackName = "Location timeout";
-        }
-        
-        setUserLocation(fallbackName);
-        setLocationError(true);
-        setLoadingLocation(false);
-        resolve(false);
+        resolve(false); // Don't set error state here — let fallbacks try first
       };
-      
-      // Use getCurrentPosition with options
+
       navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
     });
   };
@@ -200,38 +189,39 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
   // Handle successful location detection
   const handleLocationSuccess = (locationData) => {
     console.log('Location success:', locationData.displayName);
-    
+
     setUserLocation(locationData.displayName);
     setCoordinates(locationData.coordinates);
     setLocationError(false);
-    
-    // Save to localStorage for future use
-    localStorage.setItem('wayva_user_location', JSON.stringify(locationData));
-    
-    // Call the callback with full location data
+
+    // Save to localStorage with timestamp for expiry check
+    localStorage.setItem(
+      'wayva_user_location',
+      JSON.stringify({ ...locationData, savedAt: Date.now() })
+    );
+
     if (onLocationDetected) {
       onLocationDetected(locationData);
     }
-    
+
     setLoadingLocation(false);
   };
 
   // Enhanced reverse geocoding with fallback
   const reverseGeocode = async (lat, lon) => {
     try {
-      // Try OpenStreetMap Nominatim first
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
-        
+
         if (data.address) {
           const { city, town, village, municipality, state, country } = data.address;
           const locationName = city || town || village || municipality || 'Unknown';
           const displayName = `${locationName}${state ? `, ${state}` : ''}${country ? `, ${country}` : ''}`;
-          
+
           return {
             displayName,
             city: locationName,
@@ -244,8 +234,7 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
     } catch (error) {
       console.log('OpenStreetMap geocoding failed, trying fallback...');
     }
-    
-    // Fallback: Use coordinates directly
+
     return {
       displayName: `Location (${lat.toFixed(2)}, ${lon.toFixed(2)})`,
       city: null,
@@ -257,8 +246,8 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
   // Profile picture handling
   useEffect(() => {
     if (user?.profile_picture) {
-      const picUrl = user.profile_picture.startsWith('http') 
-        ? user.profile_picture 
+      const picUrl = user.profile_picture.startsWith('http')
+        ? user.profile_picture
         : `http://localhost:8000${user.profile_picture}`;
       setProfilePic(picUrl);
       setProfilePicError(false);
@@ -287,6 +276,7 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
   // Refresh location manually
   const refreshLocation = () => {
     console.log('Refreshing location...');
+    localStorage.removeItem('wayva_user_location'); // Clear cache on manual refresh
     detectLocation();
   };
 
@@ -302,15 +292,15 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
       <div className="flex items-center justify-between">
         {/* Left: Dynamic Profile Avatar - CLICKABLE */}
         <div className="flex items-center space-x-3">
-          <button 
+          <button
             onClick={handleProfileClick}
             className="focus:outline-none focus:ring-2 focus:ring-blue-300 rounded-full transition-transform hover:scale-105 active:scale-95"
             aria-label="Go to profile settings"
           >
             <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-md bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center">
               {profilePic && !profilePicError ? (
-                <img 
-                  src={profilePic} 
+                <img
+                  src={profilePic}
                   alt={`${getDisplayName()}'s profile`}
                   className="w-full h-full object-cover"
                   onError={() => setProfilePicError(true)}
@@ -328,13 +318,13 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
             <p className="text-sm font-semibold text-gray-800">{getDisplayName()}</p>
           </div>
         </div>
-        
+
         {/* Center: Location Info */}
         <div className="flex-1 max-w-xs mx-4">
           <div className="text-center">
             <p className="text-[10px] text-gray-600 font-medium tracking-wide">My Location</p>
             <div className="flex items-center justify-center gap-1.5">
-              <button 
+              <button
                 onClick={refreshLocation}
                 className="p-1 rounded-full hover:bg-gray-100 transition"
                 title="Refresh location"
@@ -374,10 +364,10 @@ const Navbar = ({ onLocationDetected, location: propLocation }) => {
             </div>
           </div>
         </div>
-        
+
         {/* Right: Notification Icon */}
         <div className="flex items-center">
-          <button 
+          <button
             className="p-2 rounded-full bg-white hover:bg-gray-50 transition shadow-sm relative group"
             aria-label="Notifications"
           >
