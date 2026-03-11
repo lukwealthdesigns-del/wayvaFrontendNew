@@ -1,37 +1,39 @@
 // components/Home/WeatherChecker.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FiSearch, FiThermometer, FiWind, FiRefreshCw, FiMapPin, FiGlobe, FiX } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiSearch, FiThermometer, FiWind, FiRefreshCw, FiMapPin, FiGlobe, FiX, FiNavigation } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 // Open-Meteo WMO weather code mapping
 const WMO_CODES = {
-  0:  { label: 'Clear Sky',               condition: 'clear'   },
-  1:  { label: 'Mainly Clear',            condition: 'clear'   },
-  2:  { label: 'Partly Cloudy',           condition: 'cloud'   },
-  3:  { label: 'Overcast',               condition: 'cloud'   },
-  45: { label: 'Foggy',                  condition: 'fog'     },
-  48: { label: 'Icy Fog',               condition: 'fog'     },
-  51: { label: 'Light Drizzle',          condition: 'drizzle' },
-  53: { label: 'Drizzle',               condition: 'drizzle' },
-  55: { label: 'Heavy Drizzle',          condition: 'drizzle' },
-  61: { label: 'Light Rain',             condition: 'rain'    },
-  63: { label: 'Rain',                   condition: 'rain'    },
-  65: { label: 'Heavy Rain',             condition: 'rain'    },
-  71: { label: 'Light Snow',             condition: 'snow'    },
-  73: { label: 'Snow',                   condition: 'snow'    },
-  75: { label: 'Heavy Snow',             condition: 'snow'    },
-  80: { label: 'Light Showers',          condition: 'rain'    },
-  81: { label: 'Showers',               condition: 'rain'    },
-  82: { label: 'Heavy Showers',          condition: 'rain'    },
-  95: { label: 'Thunderstorm',           condition: 'thunder' },
-  96: { label: 'Thunderstorm w/ Hail',   condition: 'thunder' },
-  99: { label: 'Severe Thunderstorm',    condition: 'thunder' },
+  0:  { label: 'Clear Sky',             condition: 'clear'   },
+  1:  { label: 'Mainly Clear',          condition: 'clear'   },
+  2:  { label: 'Partly Cloudy',         condition: 'cloud'   },
+  3:  { label: 'Overcast',             condition: 'cloud'   },
+  45: { label: 'Foggy',                condition: 'fog'     },
+  48: { label: 'Icy Fog',              condition: 'fog'     },
+  51: { label: 'Light Drizzle',        condition: 'drizzle' },
+  53: { label: 'Drizzle',             condition: 'drizzle' },
+  55: { label: 'Heavy Drizzle',        condition: 'drizzle' },
+  61: { label: 'Light Rain',           condition: 'rain'    },
+  63: { label: 'Rain',                 condition: 'rain'    },
+  65: { label: 'Heavy Rain',           condition: 'rain'    },
+  71: { label: 'Light Snow',           condition: 'snow'    },
+  73: { label: 'Snow',                 condition: 'snow'    },
+  75: { label: 'Heavy Snow',           condition: 'snow'    },
+  80: { label: 'Light Showers',        condition: 'rain'    },
+  81: { label: 'Showers',             condition: 'rain'    },
+  82: { label: 'Heavy Showers',        condition: 'rain'    },
+  95: { label: 'Thunderstorm',         condition: 'thunder' },
+  96: { label: 'Thunderstorm w/ Hail', condition: 'thunder' },
+  99: { label: 'Severe Thunderstorm',  condition: 'thunder' },
 };
 
 const getCondition = (code) => WMO_CODES[code] || { label: 'Unknown', condition: 'cloud' };
 
 const WeatherChecker = ({ userLocation }) => {
-  const { user } = useAuth();
+  const { user }   = useAuth();
+  const navigate   = useNavigate();
   const filterTabs = ['All', 'Popular', 'Recommended', 'Most Viewed'];
 
   // Weather states
@@ -41,18 +43,18 @@ const WeatherChecker = ({ userLocation }) => {
   const [lastUpdated, setLastUpdated]   = useState(null);
   const [refreshing, setRefreshing]     = useState(false);
 
-  // Search + location states
-  const [placeholder, setPlaceholder]         = useState('');
-  const [searchQuery, setSearchQuery]         = useState('');
-  const [searchResults, setSearchResults]     = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [searchLoading, setSearchLoading]     = useState(false);
+  // Search + selected location states
+  const [placeholder, setPlaceholder]           = useState('');
+  const [searchQuery, setSearchQuery]           = useState('');
+  const [searchResults, setSearchResults]       = useState([]);
+  const [showSuggestions, setShowSuggestions]   = useState(false);
+  const [searchLoading, setSearchLoading]       = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
 
   // Refs
-  const searchRef   = useRef(null);
+  const searchRef      = useRef(null);
   const suggestionsRef = useRef(null);
-  const debounceRef = useRef(null);
+  const debounceRef    = useRef(null);
 
   const firstName = user?.first_name || '';
   const greeting  = firstName
@@ -87,32 +89,26 @@ const WeatherChecker = ({ userLocation }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Fetch weather from Open-Meteo — no API key, no registration
+  // Fetch weather from Open-Meteo — no API key needed
   const fetchWeatherData = useCallback(async (location, forceRefresh = false) => {
     if (!location?.coordinates) {
       setLoading(false);
       setError('Waiting for location...');
       return;
     }
-
     forceRefresh ? setRefreshing(true) : setLoading(true);
     setError(null);
-
     try {
       const { lat, lon } = location.coordinates;
-
       const response = await fetch(
         `https://api.open-meteo.com/v1/forecast` +
         `?latitude=${lat}&longitude=${lon}` +
         `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,surface_pressure,weather_code` +
         `&wind_speed_unit=kmh&timezone=auto`
       );
-
       if (!response.ok) throw new Error(`Open-Meteo Error: ${response.status}`);
-
       const data = await response.json();
       const c = data.current;
-
       setWeatherData({
         temp:        c.temperature_2m,
         feelsLike:   c.apparent_temperature,
@@ -122,7 +118,6 @@ const WeatherChecker = ({ userLocation }) => {
         weatherCode: c.weather_code,
         locationName: location.displayName || location.city || 'Your Location',
       });
-
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Weather fetch error:', err);
@@ -137,59 +132,51 @@ const WeatherChecker = ({ userLocation }) => {
   useEffect(() => {
     const loc = selectedLocation || userLocation;
     fetchWeatherData(loc);
-
     const intervalId = setInterval(() => fetchWeatherData(selectedLocation || userLocation), 10 * 60 * 1000);
     return () => clearInterval(intervalId);
   }, [userLocation, selectedLocation, fetchWeatherData]);
 
-  // Search cities using Nominatim (OpenStreetMap) — no API key, no registration
+  // Live search using Nominatim — no API key, no registration
   const searchLocations = async (query) => {
     if (query.length < 2) {
       setSearchResults([]);
       setShowSuggestions(false);
       return;
     }
-
     setSearchLoading(true);
     setShowSuggestions(true);
-
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search` +
         `?q=${encodeURIComponent(query)}&format=json&limit=8&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
       );
-
       if (!response.ok) throw new Error('Nominatim search failed');
-
       const data = await response.json();
-
       if (data.length > 0) {
         const formatted = data.map((place, i) => {
-          const addr = place.address || {};
-          const city = addr.city || addr.town || addr.village || addr.municipality || place.name;
-          const state = addr.state || addr.county || '';
+          const addr    = place.address || {};
+          const city    = addr.city || addr.town || addr.village || addr.municipality || place.name;
+          const state   = addr.state || addr.county || '';
           const country = addr.country || '';
           return {
-            id: place.place_id || `place-${i}`,
-            name: city,
+            id:          place.place_id || `place-${i}`,
+            name:        city,
             state,
             country,
-            adminName: state,
-            lat: parseFloat(place.lat),
-            lng: parseFloat(place.lon),
+            adminName:   state,
+            lat:         parseFloat(place.lat),
+            lng:         parseFloat(place.lon),
             displayName: [city, state, country].filter(Boolean).join(', '),
           };
         });
-
         // Deduplicate
-        const seen = new Set();
+        const seen   = new Set();
         const unique = formatted.filter((item) => {
           if (seen.has(item.displayName)) return false;
           seen.add(item.displayName);
           return true;
         });
-
         setSearchResults(unique);
       } else {
         setSearchResults([]);
@@ -206,29 +193,41 @@ const WeatherChecker = ({ userLocation }) => {
   const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
-
     if (query.trim().length >= 2) {
       debounceRef.current = setTimeout(() => searchLocations(query), 400);
+      setShowSuggestions(true);
     } else {
       setSearchResults([]);
       setShowSuggestions(false);
     }
   };
 
-  // Select a location from dropdown
+  // On click → navigate to /plan-trip with destination pre-filled
   const handleLocationSelect = (location) => {
-    const newLoc = {
-      displayName: location.displayName,
-      city: location.name,
-      country: location.country,
-      coordinates: { lat: location.lat, lon: location.lng },
-    };
-    setSelectedLocation(newLoc);
     setSearchQuery(location.displayName);
     setShowSuggestions(false);
     setSearchResults([]);
+
+    // Also update weather to selected city
+    setSelectedLocation({
+      displayName: location.displayName,
+      city:        location.name,
+      country:     location.country,
+      coordinates: { lat: location.lat, lon: location.lng },
+    });
+
+    // Navigate to plan trip
+    navigate('/plan-trip', {
+      state: {
+        destination: {
+          name:        location.name,
+          country:     location.country,
+          displayName: location.displayName,
+          coordinates: { lat: location.lat, lon: location.lng },
+        },
+      },
+    });
   };
 
   // Clear selected location back to device location
@@ -243,7 +242,7 @@ const WeatherChecker = ({ userLocation }) => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (searchQuery.trim() && searchResults.length > 0) {
+    if (searchResults.length > 0) {
       handleLocationSelect(searchResults[0]);
     } else if (searchQuery.trim().length >= 2) {
       searchLocations(searchQuery);
@@ -262,25 +261,17 @@ const WeatherChecker = ({ userLocation }) => {
           <circle cx="40" cy="25" r="13" fill="#FDB022" />
           {isDay && [0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
             const rad = (angle * Math.PI) / 180;
-            return (
-              <line
-                key={i}
-                x1={40 + 16 * Math.cos(rad)} y1={25 + 16 * Math.sin(rad)}
-                x2={40 + 21 * Math.cos(rad)} y2={25 + 21 * Math.sin(rad)}
-                stroke="#FDB022" strokeWidth="2" strokeLinecap="round"
-              />
-            );
+            return <line key={i} x1={40 + 16 * Math.cos(rad)} y1={25 + 16 * Math.sin(rad)} x2={40 + 21 * Math.cos(rad)} y2={25 + 21 * Math.sin(rad)} stroke="#FDB022" strokeWidth="2" strokeLinecap="round" />;
           })}
         </svg>
       );
     }
-
     if (condition === 'rain' || condition === 'drizzle') {
       return (
         <svg width="80" height="50" viewBox="0 0 80 50" fill="none">
           <ellipse cx="45" cy="28" rx="18" ry="11" fill="#94A3B8" opacity="0.95" />
           <ellipse cx="58" cy="30" rx="14" ry="10" fill="#94A3B8" opacity="0.9" />
-          <ellipse cx="35" cy="30" rx="13" ry="9" fill="#94A3B8" opacity="0.85" />
+          <ellipse cx="35" cy="30" rx="13" ry="9"  fill="#94A3B8" opacity="0.85" />
           <line x1="36" y1="38" x2="34" y2="46" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" />
           <line x1="46" y1="40" x2="44" y2="48" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" />
           <line x1="56" y1="38" x2="54" y2="46" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" />
@@ -288,32 +279,26 @@ const WeatherChecker = ({ userLocation }) => {
         </svg>
       );
     }
-
     if (condition === 'snow') {
       return (
         <svg width="80" height="50" viewBox="0 0 80 50" fill="none">
           <ellipse cx="45" cy="28" rx="18" ry="11" fill="#E2E8F0" opacity="0.95" />
           <ellipse cx="58" cy="30" rx="14" ry="10" fill="#E2E8F0" opacity="0.9" />
-          <ellipse cx="35" cy="30" rx="13" ry="9" fill="#E2E8F0" opacity="0.85" />
-          {[36, 46, 56].map((x, i) => (
-            <circle key={i} cx={x} cy={42 + i} r="2" fill="white" />
-          ))}
+          <ellipse cx="35" cy="30" rx="13" ry="9"  fill="#E2E8F0" opacity="0.85" />
+          {[36, 46, 56].map((x, i) => <circle key={i} cx={x} cy={42 + i} r="2" fill="white" />)}
         </svg>
       );
     }
-
     if (condition === 'thunder') {
       return (
         <svg width="80" height="50" viewBox="0 0 80 50" fill="none">
           <ellipse cx="45" cy="26" rx="18" ry="11" fill="#475569" opacity="0.95" />
           <ellipse cx="58" cy="28" rx="14" ry="10" fill="#475569" opacity="0.9" />
-          <ellipse cx="35" cy="28" rx="13" ry="9" fill="#475569" opacity="0.85" />
+          <ellipse cx="35" cy="28" rx="13" ry="9"  fill="#475569" opacity="0.85" />
           <polyline points="46,34 41,42 46,42 41,50" stroke="#FDE047" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
         </svg>
       );
     }
-
-    // Cloudy / fog / default
     return (
       <svg width="80" height="50" viewBox="0 0 80 50" fill="none">
         <ellipse cx="45" cy="30" rx="18" ry="12" fill="white" opacity="0.95" />
@@ -324,7 +309,7 @@ const WeatherChecker = ({ userLocation }) => {
     );
   };
 
-  const formatTemp  = (t) => (t !== undefined && t !== null ? `${Math.round(t)}°` : '--°');
+  const formatTemp     = (t) => (t !== undefined && t !== null ? `${Math.round(t)}°` : '--°');
   const activeLocation = selectedLocation || userLocation;
 
   // Full loading state
@@ -376,9 +361,7 @@ const WeatherChecker = ({ userLocation }) => {
           <p className="text-4xl font-bold text-white">{formatTemp(weatherData?.temp)}</p>
           <p className="text-sm text-white mt-1 flex items-center gap-2">
             {weatherData ? getCondition(weatherData.weatherCode).label : 'Loading...'}
-            {error && (
-              <span className="text-xs bg-red-500/30 px-2 py-0.5 rounded">Limited data</span>
-            )}
+            {error && <span className="text-xs bg-red-500/30 px-2 py-0.5 rounded">Limited data</span>}
           </p>
           {lastUpdated && (
             <p className="text-[10px] text-white/70 mt-1">
@@ -409,7 +392,7 @@ const WeatherChecker = ({ userLocation }) => {
         </div>
       )}
 
-      {/* Search Bar with Autocomplete */}
+      {/* Search Bar with Live Autocomplete */}
       <div className="mb-4 relative" ref={searchRef}>
         <form onSubmit={handleSearchSubmit}>
           <div className="relative">
@@ -436,7 +419,7 @@ const WeatherChecker = ({ userLocation }) => {
           </div>
         </form>
 
-        {/* Suggestions Dropdown */}
+        {/* Live Suggestions Dropdown */}
         {showSuggestions && (
           <div
             ref={suggestionsRef}
@@ -466,7 +449,10 @@ const WeatherChecker = ({ userLocation }) => {
                           {location.adminName && `${location.adminName}, `}{location.country}
                         </p>
                       </div>
-                      <FiMapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      <div className="flex items-center gap-1">
+                        <FiNavigation className="w-3 h-3 text-blue-500" />
+                        <span className="text-xs text-blue-500 font-medium">Plan</span>
+                      </div>
                     </div>
                   </button>
                 ))}

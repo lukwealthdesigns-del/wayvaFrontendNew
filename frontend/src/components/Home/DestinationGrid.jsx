@@ -393,11 +393,11 @@ const DestinationGrid = () => {
         </button>
       </div>
       
-      {error && (
+      {/* {error && (
         <div className="mb-4 p-3 bg-yellow-50 text-yellow-600 rounded-lg text-sm">
           Could not load destinations. Showing sample data.
         </div>
-      )}
+      )} */}
       
       <div className="space-y-6">
         {destinations.map((dest) => (
