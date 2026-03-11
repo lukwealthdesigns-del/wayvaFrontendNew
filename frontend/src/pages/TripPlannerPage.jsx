@@ -18,12 +18,12 @@ const TripPlannerPage = () => {
   const location  = useLocation();
   const { user }  = useAuth();
 
-  const [currentStep, setCurrentStep]             = useState(1);
-  const [loading, setLoading]                     = useState(false);
-  const [showGeneration, setShowGeneration]       = useState(false);
+  const [currentStep, setCurrentStep]               = useState(1);
+  const [loading, setLoading]                       = useState(false);
+  const [showGeneration, setShowGeneration]         = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [generationStatus, setGenerationStatus]   = useState('Preparing your itinerary...');
-  const [generationError, setGenerationError]     = useState(null);
+  const [generationStatus, setGenerationStatus]     = useState('Preparing your itinerary...');
+  const [generationError, setGenerationError]       = useState(null);
 
   // ── Normalise incoming destination from either search (state.destination)
   //    or budget finder (state.prefillDestination) ──────────────────────────
@@ -31,18 +31,16 @@ const TripPlannerPage = () => {
     const s = location.state;
     if (!s) return null;
 
-    // From WeatherWidget / WeatherChecker search → navigate('/plan-trip', { state: { destination: {...} } })
     if (s.destination) {
       const d = s.destination;
       return {
-        city:    d.name    || d.city    || '',
-        country: d.country || '',
-        full:    d.displayName || `${d.name || d.city}, ${d.country}`,
+        city:        d.name    || d.city    || '',
+        country:     d.country || '',
+        full:        d.displayName || `${d.name || d.city}, ${d.country}`,
         coordinates: d.coordinates || null,
       };
     }
 
-    // From budget finder → navigate('/plan-trip', { state: { prefillDestination: {...} } })
     if (s.prefillDestination) {
       const d = s.prefillDestination;
       return {
@@ -86,16 +84,16 @@ const TripPlannerPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentStep]);
 
-  // ── If a destination arrived via state, skip straight to step 2 ──────────
+  // If a destination arrived via state, skip straight to step 2
   useEffect(() => {
     if (incomingDestination) {
       setCurrentStep(2);
     }
-  }, []); // run once on mount
+  }, []);
 
   // ── Step handlers ─────────────────────────────────────────────────────────
-  const handleDestinationSelect   = (dest)  => setFormData(prev => ({ ...prev, destination: dest }));
-  const handleDestinationContinue = ()      => { if (formData.destination) handleNext(); };
+  const handleDestinationSelect   = (dest) => setFormData(prev => ({ ...prev, destination: dest }));
+  const handleDestinationContinue = ()     => { if (formData.destination) handleNext(); };
 
   const handleTravelersSelect = (travelers) => {
     const map = {
@@ -110,11 +108,11 @@ const TripPlannerPage = () => {
   };
   const handleTravelersContinue  = () => { if (formData.travelers) handleNext(); };
 
-  const handleStartDateSelect    = (date)  => setFormData(prev => ({ ...prev, startDate: date }));
-  const handleEndDateSelect      = (date)  => setFormData(prev => ({ ...prev, endDate: date }));
-  const handleDatesContinue      = ()      => { if (formData.startDate && formData.endDate) handleNext(); };
+  const handleStartDateSelect    = (date) => setFormData(prev => ({ ...prev, startDate: date }));
+  const handleEndDateSelect      = (date) => setFormData(prev => ({ ...prev, endDate: date }));
+  const handleDatesContinue      = ()     => { if (formData.startDate && formData.endDate) handleNext(); };
 
-  const handleTogglePreference   = (id)    => setFormData(prev => {
+  const handleTogglePreference   = (id)   => setFormData(prev => {
     const isSelected = prev.preferences.includes(id);
     return {
       ...prev,
@@ -123,13 +121,13 @@ const TripPlannerPage = () => {
         : [...prev.preferences, id]
     };
   });
-  const handlePreferencesContinue = ()     => { if (formData.preferences.length > 0) handleNext(); };
+  const handlePreferencesContinue = ()    => { if (formData.preferences.length > 0) handleNext(); };
 
   const handleBudgetSelect       = (budget) => setFormData(prev => ({
     ...prev,
     budget: { type: budget.type, amount: parseFloat(budget.amount) || 0 }
   }));
-  const handleBudgetContinue     = ()      => { if (formData.budget?.amount && formData.budget?.type) handleNext(); };
+  const handleBudgetContinue     = ()     => { if (formData.budget?.amount && formData.budget?.type) handleNext(); };
 
   const handleNext = () => { if (currentStep < 6) setCurrentStep(currentStep + 1); };
   const goToStep   = (step) => setCurrentStep(step);
@@ -157,8 +155,8 @@ const TripPlannerPage = () => {
         summary:    `Day ${i + 1} in ${destination}`,
         activities: [
           { title: 'Morning Activity', description: 'Explore local attractions', category: 'sightseeing', start_time: '09:00', end_time: '12:00', location: destination, estimated_cost: 50 },
-          { title: 'Lunch',            description: 'Try local cuisine',        category: 'food',        start_time: '12:30', end_time: '13:30', location: 'Local restaurant', estimated_cost: 25 },
-          { title: 'Afternoon',        description: 'Visit cultural sites',     category: 'culture',     start_time: '14:00', end_time: '17:00', location: destination, estimated_cost: 40 },
+          { title: 'Lunch',            description: 'Try local cuisine',         category: 'food',        start_time: '12:30', end_time: '13:30', location: 'Local restaurant', estimated_cost: 25 },
+          { title: 'Afternoon',        description: 'Visit cultural sites',      category: 'culture',     start_time: '14:00', end_time: '17:00', location: destination, estimated_cost: 40 },
         ]
       });
     }
@@ -170,9 +168,9 @@ const TripPlannerPage = () => {
       ? Math.ceil((new Date(formData.endDate) - new Date(formData.startDate)) / (1000 * 60 * 60 * 24)) + 1
       : 5;
     return {
-      trip_id:    `mock-${Date.now()}`,
-      destination: formData.destination?.full || `${formData.destination?.city}, ${formData.destination?.country}`,
-      trip_type:  formData.travelers?.tripType || 'solo',
+      trip_id:      `mock-${Date.now()}`,
+      destination:  formData.destination?.full || `${formData.destination?.city}, ${formData.destination?.country}`,
+      trip_type:    formData.travelers?.tripType || 'solo',
       duration_days: duration,
       total_estimated_cost: {
         min:      formData.budget?.amount ? formData.budget.amount * 0.8 : 800,
@@ -180,16 +178,16 @@ const TripPlannerPage = () => {
         average:  formData.budget?.amount || 1000,
         currency: 'USD'
       },
-      itinerary:       generateMockDays(duration, formData.destination?.city || 'your destination'),
-      ai_insights:     `Your ${duration}-day trip to ${formData.destination?.city || 'your destination'} is ready! This is a sample itinerary.`,
-      recommendations: ['Visit the main attractions', 'Try local cuisine', 'Book accommodations in advance', 'Check visa requirements'],
-      important_notes: ['This is a sample itinerary', 'Verify all details before traveling', 'Get travel insurance', 'Check local COVID-19 restrictions'],
-      generated_at:    new Date().toISOString(),
-      isMock:          true
+      itinerary:        generateMockDays(duration, formData.destination?.city || 'your destination'),
+      ai_insights:      `Your ${duration}-day trip to ${formData.destination?.city || 'your destination'} is ready!`,
+      recommendations:  ['Visit the main attractions', 'Try local cuisine', 'Book accommodations in advance', 'Check visa requirements'],
+      important_notes:  ['This is a sample itinerary', 'Verify all details before traveling', 'Get travel insurance'],
+      generated_at:     new Date().toISOString(),
+      isMock:           true
     };
   };
 
-  // ── Generation progress animation ────────────────────────────────────────
+  // ── Generation progress animation ─────────────────────────────────────────
   const startGenerationProgress = () => {
     setGenerationProgress(0);
     setGenerationStatus('Preparing your itinerary...');
@@ -202,11 +200,11 @@ const TripPlannerPage = () => {
       });
     }, 300);
 
-    setTimeout(() => setGenerationStatus('Analyzing your preferences...'),          1000);
-    setTimeout(() => setGenerationStatus('Searching for best activities...'),        2000);
-    setTimeout(() => setGenerationStatus('Creating daily itinerary...'),             3000);
-    setTimeout(() => setGenerationStatus('Calculating costs & recommendations...'),  4000);
-    setTimeout(() => setGenerationStatus('Finalizing your personalized trip...'),    5000);
+    setTimeout(() => setGenerationStatus('Analyzing your preferences...'),         1000);
+    setTimeout(() => setGenerationStatus('Searching for best activities...'),       2000);
+    setTimeout(() => setGenerationStatus('Creating daily itinerary...'),            3000);
+    setTimeout(() => setGenerationStatus('Calculating costs & recommendations...'), 4000);
+    setTimeout(() => setGenerationStatus('Finalizing your personalized trip...'),   5000);
 
     return interval;
   };
@@ -264,14 +262,19 @@ const TripPlannerPage = () => {
       const response = await aiAPI.planTrip(requestData);
       console.log('✅ Trip planned successfully:', response.data);
 
+      clearInterval(progressInterval);
       setGenerationProgress(100);
       setGenerationStatus('Itinerary ready!');
       await new Promise(resolve => setTimeout(resolve, 500));
-      clearInterval(progressInterval);
 
       if (response.data?.trip_id && !response.data.trip_id.startsWith('mock-')) {
-        navigate(`/itinerary-detail/${response.data.trip_id}`, {
-          state: { formData, aiResponse: response.data },
+        // ✅ Navigate to success screen first, pass tripId + formData
+        navigate('/itinerary-success', {
+          state: {
+            tripId:    response.data.trip_id,
+            formData,
+            aiResponse: response.data
+          },
           replace: true
         });
       } else {
@@ -287,9 +290,16 @@ const TripPlannerPage = () => {
       setGenerationStatus('Using sample itinerary (backend unavailable)');
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const mockResponse  = generateMockItinerary();
-      navigate(`/itinerary-detail/${mockResponse.trip_id}`, {
-        state: { formData, aiResponse: mockResponse, isMock: true },
+      const mockResponse = generateMockItinerary();
+
+      // ✅ Mock also goes to success screen first
+      navigate('/itinerary-success', {
+        state: {
+          tripId:    mockResponse.trip_id,
+          formData,
+          aiResponse: mockResponse,
+          isMock:    true
+        },
         replace: true
       });
 

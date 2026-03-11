@@ -211,10 +211,10 @@ const GeneratingScreen = ({ formData, progress = 0, status, error, onComplete, o
       </div>
 
       {/* AI Processing Steps - Horizontal Carousel */}
-      <div className="mt-4 mb-8">
+      <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-gray-900">AI Processing Steps</h3>
-          <div className="flex items-center space-x-2">
+          <div className="mt-4 flex items-center space-x-2">
             <button 
               onClick={() => scrollSteps('left')}
               className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
