@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiCloud } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { destinationsAPI } from '../api/destinations';
@@ -11,6 +12,7 @@ import FloatingActionButton from '../components/Shared/FloatingActionButton';
 
 const HomePage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [userLocation, setUserLocation] = useState(null);
   const [locationName, setLocationName] = useState('Detecting location...');
   const [popularDestinations, setPopularDestinations] = useState([]);
@@ -72,6 +74,20 @@ const HomePage = () => {
       }
     }
   }, []);
+
+  // Navigate to plan-trip — called by WeatherWidget when user clicks a search result
+  const handleDestinationSelect = (destination) => {
+    navigate('/plan-trip', {
+      state: {
+        destination: {
+          name:        destination.name,
+          country:     destination.country,
+          displayName: destination.displayName,
+          coordinates: destination.coordinates || null,
+        },
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen pb-20 bg-white">
@@ -155,10 +171,11 @@ const HomePage = () => {
               </div>
             )} */}
             
-            {/* Pass userLocation to WeatherWidget */}
+            {/* Pass userLocation to WeatherWidget + onDestinationSelect for search navigation */}
             <WeatherWidget 
               userLocation={userLocation} 
               coordinates={userLocation?.coordinates}
+              onDestinationSelect={handleDestinationSelect}
             />
             
             <ActivityFilter />

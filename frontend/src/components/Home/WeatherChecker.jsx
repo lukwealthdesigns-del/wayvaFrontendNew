@@ -1,6 +1,5 @@
 // components/Home/WeatherChecker.jsx
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiThermometer, FiWind, FiRefreshCw, FiMapPin, FiGlobe, FiX, FiNavigation } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -31,9 +30,8 @@ const WMO_CODES = {
 
 const getCondition = (code) => WMO_CODES[code] || { label: 'Unknown', condition: 'cloud' };
 
-const WeatherChecker = ({ userLocation }) => {
+const WeatherChecker = ({ userLocation, onDestinationSelect }) => {
   const { user }   = useAuth();
-  const navigate   = useNavigate();
   const filterTabs = ['All', 'Popular', 'Recommended', 'Most Viewed'];
 
   // Weather states
@@ -170,7 +168,6 @@ const WeatherChecker = ({ userLocation }) => {
             displayName: [city, state, country].filter(Boolean).join(', '),
           };
         });
-        // Deduplicate
         const seen   = new Set();
         const unique = formatted.filter((item) => {
           if (seen.has(item.displayName)) return false;
@@ -203,13 +200,13 @@ const WeatherChecker = ({ userLocation }) => {
     }
   };
 
-  // On click → navigate to /plan-trip with destination pre-filled
+  // On click — update weather preview AND call parent to navigate
   const handleLocationSelect = (location) => {
     setSearchQuery(location.displayName);
     setShowSuggestions(false);
     setSearchResults([]);
 
-    // Also update weather to selected city
+    // Update weather widget to show selected city's weather
     setSelectedLocation({
       displayName: location.displayName,
       city:        location.name,
@@ -217,17 +214,15 @@ const WeatherChecker = ({ userLocation }) => {
       coordinates: { lat: location.lat, lon: location.lng },
     });
 
-    // Navigate to plan trip
-    navigate('/plan-trip', {
-      state: {
-        destination: {
-          name:        location.name,
-          country:     location.country,
-          displayName: location.displayName,
-          coordinates: { lat: location.lat, lon: location.lng },
-        },
-      },
-    });
+    // Let HomePage handle the actual navigation
+    if (onDestinationSelect) {
+      onDestinationSelect({
+        name:        location.name,
+        country:     location.country,
+        displayName: location.displayName,
+        coordinates: { lat: location.lat, lon: location.lng },
+      });
+    }
   };
 
   // Clear selected location back to device location
