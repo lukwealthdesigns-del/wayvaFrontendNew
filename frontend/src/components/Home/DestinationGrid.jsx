@@ -15,16 +15,16 @@ const DestinationGrid = () => {
   
   // Country flag emojis mapping
   const countryFlags = {
-    'FR': '🇫🇷', // France
-    'ID': '🇮🇩', // Indonesia
-    'ZA': '🇿🇦', // South Africa
-    'JP': '🇯🇵', // Japan
-    'NG': '🇳🇬', // Nigeria
-    'US': '🇺🇸', // United States
-    'GB': '🇬🇧', // United Kingdom
-    'IT': '🇮🇹', // Italy
-    'ES': '🇪🇸', // Spain
-    'AU': '🇦🇺', // Australia
+    'FR': '🇫🇷',
+    'ID': '🇮🇩',
+    'ZA': '🇿🇦',
+    'JP': '🇯🇵',
+    'NG': '🇳🇬',
+    'US': '🇺🇸',
+    'GB': '🇬🇧',
+    'IT': '🇮🇹',
+    'ES': '🇪🇸',
+    'AU': '🇦🇺',
   };
   
   // Fetch destinations from backend
@@ -42,39 +42,26 @@ const DestinationGrid = () => {
         
         const data = await response.json();
         
-        // Map backend data to frontend format
         const mappedDestinations = data.map((dest, index) => {
-          // Get primary image or first image
           let primaryImage = '';
           if (dest.images && dest.images.length > 0) {
             const primary = dest.images.find(img => img.is_primary);
             primaryImage = primary ? primary.image_url : dest.images[0].image_url;
           }
           
-          // If no image from backend, use fallback based on destination
           if (!primaryImage) {
             primaryImage = getFallbackImage(dest.name, index);
           }
           
-          // Format name - extract city if it contains comma
           let cityName = dest.name;
           if (dest.name.includes(',')) {
             cityName = dest.name.split(',')[0];
           }
           
-          // Get country code for flag
           const countryCode = dest.country_code || getCountryCode(dest.country);
-          
-          // Get flag emoji
           const flag = countryFlags[countryCode] || '🏳️';
-          
-          // Get style based on destination characteristics
           const style = getDestinationStyle(cityName, dest.country, index);
-          
-          // Get travelers type
           const travelers = getTravelersType(index);
-          
-          // Generate date range
           const dateRange = generateDateRange(index);
           
           return {
@@ -106,7 +93,6 @@ const DestinationGrid = () => {
       } catch (err) {
         console.error('Error fetching destinations:', err);
         setError(err.message);
-        // Fallback to default data with flag emojis
         setDestinations(getFallbackDestinations());
       } finally {
         setLoading(false);
@@ -129,7 +115,6 @@ const DestinationGrid = () => {
       const data = await response.json();
       setDestinationDetails(data);
       
-      // Also fetch activities for this destination
       const activitiesResponse = await fetch(`http://localhost:8000/api/destinations/${destinationId}/activities?limit=5`);
       if (activitiesResponse.ok) {
         const activitiesData = await activitiesResponse.json();
@@ -140,7 +125,6 @@ const DestinationGrid = () => {
       }
     } catch (err) {
       console.error('Error fetching destination details:', err);
-      // Use existing data if fetch fails
       const existingDest = destinations.find(d => d.id === destinationId);
       setDestinationDetails(existingDest);
     } finally {
@@ -197,13 +181,11 @@ const DestinationGrid = () => {
       ]
     };
     
-    // Extract city name
     let city = destinationName;
     if (destinationName.includes(',')) {
       city = destinationName.split(',')[0].trim();
     }
     
-    // Get images for this city
     const images = destinationImages[city] || [
       'https://images.unsplash.com/photo-1488646953014-85cb44e25828?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
@@ -230,18 +212,13 @@ const DestinationGrid = () => {
   };
   
   const getDestinationStyle = (cityName, country, index) => {
-    const styles = [
-      'Luxury', 'Vibrant', 'Adventure', 'Cultural', 
-      'Relaxing', 'Historic', 'Modern', 'Scenic'
-    ];
-    
+    const styles = ['Luxury', 'Vibrant', 'Adventure', 'Cultural', 'Relaxing', 'Historic', 'Modern', 'Scenic'];
     if (cityName.includes('Paris')) return 'Luxury';
     if (cityName.includes('Bali')) return 'Relaxing';
     if (cityName.includes('Cape Town')) return 'Adventure';
     if (cityName.includes('Tokyo')) return 'Modern';
     if (cityName.includes('Lagos')) return 'Vibrant';
     if (cityName.includes('Abuja')) return 'Cultural';
-    
     return styles[index % styles.length];
   };
   
@@ -393,11 +370,11 @@ const DestinationGrid = () => {
         </button>
       </div>
       
-      {/* {error && (
+      {error && (
         <div className="mb-4 p-3 bg-yellow-50 text-yellow-600 rounded-lg text-sm">
           Could not load destinations. Showing sample data.
         </div>
-      )} */}
+      )}
       
       <div className="space-y-6">
         {destinations.map((dest) => (
@@ -625,7 +602,19 @@ const DestinationGrid = () => {
               <button
                 onClick={() => {
                   closeModal();
-                  navigate(`/destination/${selectedDestination.id}`);
+                  // ── FIXED: was navigate(`/destination/${selectedDestination.id}`)
+                  // which hit the catch-all and redirected to splash screen.
+                  // Now navigates correctly to /plan-trip with destination pre-filled.
+                  navigate('/plan-trip', {
+                    state: {
+                      destination: {
+                        name:        selectedDestination.city,
+                        country:     selectedDestination.country,
+                        displayName: `${selectedDestination.city}, ${selectedDestination.country}`,
+                        coordinates: null,
+                      },
+                    },
+                  });
                 }}
                 className="px-5 py-2.5 bg-[#064473] text-white rounded-xl font-medium hover:opacity-90 transition flex items-center space-x-2"
               >

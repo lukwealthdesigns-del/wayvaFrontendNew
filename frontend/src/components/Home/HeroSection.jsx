@@ -21,7 +21,7 @@ const HeroSection = () => {
       </div>
       
       {/* Filter Tabs */}
-      <div className="flex space-x-4 overflow-x-auto pb-2 mb-6">
+      {/* <div className="flex space-x-4 overflow-x-auto pb-2 mb-6">
         {['All', 'Popular', 'Recommended', 'Most Viewed'].map((tab) => (
           <button
             key={tab}
@@ -34,7 +34,7 @@ const HeroSection = () => {
             {tab} {tab === 'All' && <span className="ml-1 text-sm">0</span>}
           </button>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 };

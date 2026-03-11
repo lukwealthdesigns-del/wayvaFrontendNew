@@ -560,7 +560,7 @@ const ChatInterface = ({
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={isAITyping ? "AI is responding..." : "Ask about travel, destinations, or itineraries..."}
+                placeholder={isAITyping ? "AI is responding..." : "Ask about travel or itineraries..."}
                 className={`w-full pl-4 pr-14 py-3 pb-4 bg-gray-50 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#064473] focus:border-transparent resize-none ${
                   isAITyping ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
