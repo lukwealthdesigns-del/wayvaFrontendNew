@@ -214,7 +214,7 @@ const GeneratingScreen = ({ formData, progress = 0, status, error, onComplete, o
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-gray-900">AI Processing Steps</h3>
-          <div className="mt-4 flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
             <button 
               onClick={() => scrollSteps('left')}
               className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -236,7 +236,7 @@ const GeneratingScreen = ({ formData, progress = 0, status, error, onComplete, o
 
         <div 
           ref={stepsContainerRef}
-          className="flex space-x-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide"
+          className="mt-4 flex space-x-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {generationSteps.map((step, index) => (

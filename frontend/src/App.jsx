@@ -93,34 +93,16 @@ function App() {
                   <AIChatPage />
                 </ProtectedRoute>
               } />
-              
-              {/* Trip Planning Flow (Protected) */}
-              <Route path="/plan-trip" element={
-                <ProtectedRoute>
-                  <TripPlannerPage />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/generating-itinerary" element={
-                <ProtectedRoute>
-                  <GeneratingItineraryPage />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/itinerary-success" element={
-                <ProtectedRoute>
-                  <ItinerarySuccessPage />
-                </ProtectedRoute>
-              } />
 
-              
+              {/* Trip Planning Flow
+                  ── Removed from ProtectedRoute to prevent auth race condition
+                     during navigate({ replace: true }) after async generation.
+                     Auth is checked manually inside TripPlannerPage instead.   */}
+              <Route path="/plan-trip"            element={<TripPlannerPage />} />
+              <Route path="/generating-itinerary" element={<GeneratingItineraryPage />} />
+              <Route path="/itinerary-success"    element={<ItinerarySuccessPage />} />
               <Route path="/itinerary-detail/:tripId" element={<ItineraryDetailPage />} />
-              
-              <Route path="/itinerary-detail" element={
-                <ProtectedRoute>
-                  <ItineraryDetailPage />
-                </ProtectedRoute>
-              } />
+              <Route path="/itinerary-detail"     element={<ItineraryDetailPage />} />
               
               {/* Settings Pages (Protected) */}
               <Route path="/settings" element={
@@ -143,13 +125,12 @@ function App() {
               } />
               
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-
+              <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
               {/* Redirects */}
               <Route path="/old-onboarding" element={<Navigate to="/onboarding" replace />} />
               
-              {/* Catch-all route - Redirect to splash for unauthenticated, home for authenticated */}
+              {/* Catch-all */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
