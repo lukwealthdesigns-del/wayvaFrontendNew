@@ -352,11 +352,11 @@ const DestinationStep = ({ selectedDestination, onSelect, onContinue }) => {
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-gray-900">Popular Destinations</h2>
-                {isLoadingTimeout && (
+                {/* {isLoadingTimeout && (
                   <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
                     ⚡ Sample Data
                   </span>
-                )}
+                )} */}
               </div>
               <div className="flex items-center space-x-2">
                 <button 
