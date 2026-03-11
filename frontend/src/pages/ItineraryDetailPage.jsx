@@ -349,7 +349,7 @@ const ItineraryDetailPage = () => {
   };
 
   // Save itinerary to trips
-  c// In handleSaveToTrips function, replace the navigation part:
+  // In handleSaveToTrips function, replace the navigation part:
 
   const handleSaveToTrips = async () => {
     if (!itinerary || itinerary.isMock) {
