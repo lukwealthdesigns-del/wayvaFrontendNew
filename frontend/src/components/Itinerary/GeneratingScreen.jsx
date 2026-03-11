@@ -2,11 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiMapPin, FiUsers, FiCalendar, FiTag, FiDollarSign, FiZap, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 
-const GeneratingScreen = ({ formData, onComplete }) => {
-  const [progress, setProgress] = useState(0);
+const GeneratingScreen = ({ formData, progress = 0, status, error, onComplete, onCancel }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [aiMessage, setAiMessage] = useState('Initializing AI travel assistant...');
-  const [visibleSteps, setVisibleSteps] = useState([0, 1, 2]); // Show 3 steps at a time
   const stepsContainerRef = useRef(null);
   
   const PRIMARY_COLOR = '#064473';
@@ -17,43 +15,31 @@ const GeneratingScreen = ({ formData, onComplete }) => {
       title: 'Analyzing Destination',
       description: 'Researching visa requirements, local customs, and attractions.',
       icon: <FiMapPin className="w-6 h-6" />,
-      duration: 1500,
-      status: 'completed'
     },
     {
       title: 'Considering Travelers',
       description: 'Tailoring activities for your travel group preferences.',
       icon: <FiUsers className="w-6 h-6" />,
-      duration: 1200,
-      status: 'completed'
     },
     {
       title: 'Optimizing Dates',
       description: 'Checking weather patterns and seasonal events.',
       icon: <FiCalendar className="w-6 h-6" />,
-      duration: 1000,
-      status: 'completed'
     },
     {
       title: 'Customizing Preferences',
       description: 'Incorporating your selected interests and activities.',
       icon: <FiTag className="w-6 h-6" />,
-      duration: 1400,
-      status: 'in-progress'
     },
     {
       title: 'Budget Planning',
       description: 'Creating cost-effective options within your budget.',
       icon: <FiDollarSign className="w-6 h-6" />,
-      duration: 1300,
-      status: 'pending'
     },
     {
       title: 'Finalizing Itinerary',
       description: 'Generating your personalized travel plan.',
       icon: <FiZap className="w-6 h-6" />,
-      duration: 1600,
-      status: 'pending'
     }
   ];
 
@@ -68,84 +54,36 @@ const GeneratingScreen = ({ formData, onComplete }) => {
     "Finalizing day-by-day schedule..."
   ];
 
-  // Progress and step management
+  // Drive current step from progress prop (0-100 → 0-5)
   useEffect(() => {
-    const totalDuration = generationSteps.reduce((sum, step) => sum + step.duration, 0);
-    const interval = 100;
-    const steps = totalDuration / interval;
-    const increment = 100 / steps;
+    const stepIndex = Math.min(
+      Math.floor((progress / 100) * generationSteps.length),
+      generationSteps.length - 1
+    );
+    setCurrentStep(stepIndex);
 
-    const timer = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(timer);
-          setTimeout(() => {
-            onComplete();
-          }, 500);
-          return 100;
-        }
-        return prev + increment;
-      });
-    }, interval);
+    // Scroll to current step card
+    if (stepsContainerRef.current) {
+      const stepElement = stepsContainerRef.current.querySelector(`[data-step="${stepIndex}"]`);
+      if (stepElement) {
+        stepElement.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+      }
+    }
+  }, [progress]);
 
-    return () => clearInterval(timer);
-  }, [onComplete, generationSteps]);
-
-  // Step completion simulation
-  useEffect(() => {
-    const stepInterval = setInterval(() => {
-      setCurrentStep(prev => {
-        if (prev >= generationSteps.length - 1) {
-          clearInterval(stepInterval);
-          return prev;
-        }
-        
-        // Update visible steps when current step changes
-        const newStep = prev + 1;
-        const newVisible = [];
-        
-        if (newStep >= 2) {
-          newVisible.push(newStep - 2, newStep - 1, newStep);
-        } else {
-          newVisible.push(0, 1, 2);
-        }
-        
-        setVisibleSteps(newVisible);
-        
-        // Scroll to the current step
-        if (stepsContainerRef.current) {
-          const stepElement = stepsContainerRef.current.querySelector(`[data-step="${newStep}"]`);
-          if (stepElement) {
-            stepElement.scrollIntoView({
-              behavior: 'smooth',
-              inline: 'center'
-            });
-          }
-        }
-        
-        return newStep;
-      });
-    }, 2000);
-
-    return () => clearInterval(stepInterval);
-  }, [generationSteps.length]);
-
-  // AI message rotation
+  // AI message rotation — purely cosmetic, independent of navigation
   useEffect(() => {
     const messageInterval = setInterval(() => {
       const randomIndex = Math.floor(Math.random() * aiMessages.length);
       setAiMessage(aiMessages[randomIndex]);
     }, 2200);
-
     return () => clearInterval(messageInterval);
-  }, [aiMessages]);
+  }, []);
 
-  // Navigation functions
   const scrollSteps = (direction) => {
     if (stepsContainerRef.current) {
-      const scrollAmount = 280; // Width of step card + gap
       stepsContainerRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        left: direction === 'left' ? -280 : 280,
         behavior: 'smooth'
       });
     }
@@ -153,26 +91,25 @@ const GeneratingScreen = ({ formData, onComplete }) => {
 
   const formatDate = (date) => {
     if (!date) return '';
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: 'numeric' 
-    });
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
   const travelerLabels = {
-    'solo': 'Only Me',
-    'couple': 'A Couple',
-    'family': 'Family',
+    'only_me': 'Only Me',
+    'solo':    'Only Me',
+    'couple':  'A Couple',
+    'family':  'Family',
     'friends': 'Friends',
-    'work': 'Work'
+    'work':    'Work'
   };
 
   const budgetLabels = {
-    'cheap': 'Budget-Friendly',
-    'balanced': 'Balanced',
-    'luxury': 'Luxury',
-    'flexible': 'Flexible'
+    'budget_friendly': 'Budget-Friendly',
+    'cheap':           'Budget-Friendly',
+    'balanced':        'Balanced',
+    'luxury':          'Luxury',
+    'flexible':        'Flexible'
   };
 
   return (
@@ -189,7 +126,7 @@ const GeneratingScreen = ({ formData, onComplete }) => {
           Generating Your AI Itinerary
         </h1>
         <p className="text-gray-600">
-          Our AI is crafting your perfect travel plan
+          {status || 'Our AI is crafting your perfect travel plan'}
         </p>
       </div>
 
@@ -211,7 +148,7 @@ const GeneratingScreen = ({ formData, onComplete }) => {
             <div>
               <p className="text-xs text-gray-500">Destination</p>
               <p className="font-medium text-gray-900 text-sm">
-                {formData.destination?.city}, {formData.destination?.region}
+                {formData?.destination?.city}{formData?.destination?.country ? `, ${formData.destination.country}` : ''}
               </p>
             </div>
           </div>
@@ -223,7 +160,7 @@ const GeneratingScreen = ({ formData, onComplete }) => {
             <div>
               <p className="text-xs text-gray-500">Travelers</p>
               <p className="font-medium text-gray-900 text-sm">
-                {travelerLabels[formData.travelers]}
+                {travelerLabels[formData?.travelers?.tripType] || travelerLabels[formData?.travelers] || 'Not specified'}
               </p>
             </div>
           </div>
@@ -235,7 +172,7 @@ const GeneratingScreen = ({ formData, onComplete }) => {
             <div>
               <p className="text-xs text-gray-500">Dates</p>
               <p className="font-medium text-gray-900 text-sm">
-                {formatDate(formData.startDate)} - {formatDate(formData.endDate)}
+                {formatDate(formData?.startDate)} - {formatDate(formData?.endDate)}
               </p>
             </div>
           </div>
@@ -247,7 +184,7 @@ const GeneratingScreen = ({ formData, onComplete }) => {
             <div>
               <p className="text-xs text-gray-500">Budget</p>
               <p className="font-medium text-gray-900 text-sm">
-                {budgetLabels[formData.budget]}
+                {budgetLabels[formData?.budget?.type] || budgetLabels[formData?.budget] || 'Not specified'}
               </p>
             </div>
           </div>
@@ -268,16 +205,13 @@ const GeneratingScreen = ({ formData, onComplete }) => {
         <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
           <div 
             className="h-full rounded-full transition-all duration-300"
-            style={{ 
-              width: `${progress}%`,
-              backgroundColor: PRIMARY_COLOR
-            }}
-          ></div>
+            style={{ width: `${progress}%`, backgroundColor: PRIMARY_COLOR }}
+          />
         </div>
       </div>
 
       {/* AI Processing Steps - Horizontal Carousel */}
-      <div className="mb-8">
+      <div className="mt-4 mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-gray-900">AI Processing Steps</h3>
           <div className="flex items-center space-x-2">
@@ -300,7 +234,6 @@ const GeneratingScreen = ({ formData, onComplete }) => {
           </div>
         </div>
 
-        {/* Steps Carousel */}
         <div 
           ref={stepsContainerRef}
           className="flex space-x-4 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide"
@@ -318,7 +251,6 @@ const GeneratingScreen = ({ formData, onComplete }) => {
                   : 'bg-gray-50 border border-gray-200 opacity-80'
               }`}
             >
-              {/* Step Header */}
               <div className="flex items-center justify-between mb-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                   index === currentStep ? 'bg-white shadow-sm' :
@@ -326,13 +258,11 @@ const GeneratingScreen = ({ formData, onComplete }) => {
                 }`}>
                   <div style={{ 
                     color: index === currentStep ? PRIMARY_COLOR : 
-                          index < currentStep ? '#059669' : '#9CA3AF'
+                           index < currentStep ? '#059669' : '#9CA3AF'
                   }}>
                     {step.icon}
                   </div>
                 </div>
-                
-                {/* Step Status */}
                 <div className={`text-xs font-medium px-2 py-1 rounded-full ${
                   index === currentStep 
                     ? 'bg-blue-100 text-blue-700' 
@@ -345,7 +275,6 @@ const GeneratingScreen = ({ formData, onComplete }) => {
                 </div>
               </div>
               
-              {/* Step Content */}
               <h4 className={`font-bold mb-1 ${
                 index === currentStep ? 'text-gray-900' :
                 index < currentStep ? 'text-gray-800' : 'text-gray-500'
@@ -359,7 +288,6 @@ const GeneratingScreen = ({ formData, onComplete }) => {
                 {step.description}
               </p>
               
-              {/* Progress Animation for Current Step */}
               {index === currentStep && (
                 <div className="mt-4">
                   <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
@@ -367,14 +295,13 @@ const GeneratingScreen = ({ formData, onComplete }) => {
                       className="h-full rounded-full animate-pulse"
                       style={{ 
                         backgroundColor: PRIMARY_COLOR,
-                        width: `${(progress % (100/generationSteps.length)) * generationSteps.length}%`
+                        width: `${(progress % (100 / generationSteps.length)) * generationSteps.length}%`
                       }}
-                    ></div>
+                    />
                   </div>
                 </div>
               )}
               
-              {/* Step Number */}
               <div className={`mt-4 text-xs font-medium ${
                 index === currentStep ? 'text-blue-600' :
                 index < currentStep ? 'text-green-600' : 'text-gray-400'
@@ -392,9 +319,7 @@ const GeneratingScreen = ({ formData, onComplete }) => {
           <div className="w-6 h-6 rounded-full bg-white border border-blue-200 flex items-center justify-center mr-2">
             <FiZap className="w-3 h-3" style={{ color: PRIMARY_COLOR }} />
           </div>
-          <p className="text-xs font-medium" style={{ color: PRIMARY_COLOR }}>
-            AI Assistant
-          </p>
+          <p className="text-xs font-medium" style={{ color: PRIMARY_COLOR }}>AI Assistant</p>
         </div>
         <p className="text-sm text-gray-700">{aiMessage}</p>
         <div className="flex mt-2">
@@ -406,13 +331,8 @@ const GeneratingScreen = ({ formData, onComplete }) => {
 
       {/* CSS to hide scrollbar */}
       <style>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

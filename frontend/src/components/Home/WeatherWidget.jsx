@@ -415,7 +415,7 @@ const WeatherWidget = ({ userLocation, onDestinationSelect }) => {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex space-x-2 overflow-x-auto">
+      {/* <div className="flex space-x-2 overflow-x-auto">
         {filterTabs.map((tab, index) => (
           <button
             key={index}
@@ -429,7 +429,7 @@ const WeatherWidget = ({ userLocation, onDestinationSelect }) => {
             {tab}
           </button>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 };

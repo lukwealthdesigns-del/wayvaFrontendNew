@@ -113,20 +113,7 @@ const DestinationStep = ({ selectedDestination, onSelect, onContinue }) => {
     };
   }, []);
 
-  // Mock search fallback when API fails
-  const mockSearchDestinations = (query) => {
-    const queryLower = query.toLowerCase();
-    return mockPopularDestinations.filter(dest => 
-      dest.city.toLowerCase().includes(queryLower) ||
-      dest.country.toLowerCase().includes(queryLower)
-    ).slice(0, 5).map(dest => ({
-      ...dest,
-      type: 'destination',
-      id: `mock-${dest.id}`
-    }));
-  };
-
-  // Search destinations using backend API with fallback
+  // ── Search using Nominatim (same API as WeatherWidget) ────────────────────
   const searchDestinations = useCallback(
     debounce(async (query) => {
       if (query.length < 2) {
@@ -137,41 +124,64 @@ const DestinationStep = ({ selectedDestination, onSelect, onContinue }) => {
       setIsLoading(true);
 
       try {
-        const response = await destinationsAPI.searchDestinations({
-          query: query,
-          page: 1,
-          page_size: 20
-        });
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search` +
+          `?q=${encodeURIComponent(query)}&format=json&limit=8&addressdetails=1`,
+          { headers: { 'Accept-Language': 'en' } }
+        );
 
-        if (response.data && response.data.destinations && response.data.destinations.length > 0) {
-          const formattedResults = response.data.destinations.map((dest) => ({
-            id: dest.id,
-            city: dest.city || dest.name,
-            country: dest.country,
-            region: dest.city || dest.name,
-            type: 'destination',
-            flag: getFlagEmoji(dest.country_code),
-            image: getDestinationImage(dest),
-            popularity_score: dest.popularity_score,
-            best_time_to_visit: dest.best_time_to_visit,
-            avg_daily_cost: dest.avg_daily_cost_mid
-          }));
-          setSearchResults(formattedResults);
+        if (!response.ok) throw new Error('Nominatim search failed');
+
+        const data = await response.json();
+
+        if (data.length > 0) {
+          const formatted = data.map((place, i) => {
+            const addr    = place.address || {};
+            const city    = addr.city || addr.town || addr.village || addr.municipality || place.name;
+            const state   = addr.state || addr.county || '';
+            const country = addr.country || '';
+            const countryCode = addr.country_code?.toUpperCase() || '';
+            return {
+              id:          place.place_id || `place-${i}`,
+              city,
+              country,
+              region:      state || country,
+              flag:        getFlagEmoji(countryCode),
+              image:       `https://source.unsplash.com/featured/400x300/?${encodeURIComponent(city)},travel`,
+              type:        'destination',
+              coordinates: { lat: parseFloat(place.lat), lon: parseFloat(place.lon) },
+              display_name: [city, state, country].filter(Boolean).join(', '),
+            };
+          });
+
+          // Deduplicate by display_name
+          const seen   = new Set();
+          const unique = formatted.filter((item) => {
+            if (seen.has(item.display_name)) return false;
+            seen.add(item.display_name);
+            return true;
+          });
+
+          setSearchResults(unique);
         } else {
-          // Fallback to mock search results
-          console.log('⚠️ No search results from API - using mock');
-          const mockResults = mockSearchDestinations(query);
-          setSearchResults(mockResults);
+          setSearchResults([]);
         }
       } catch (error) {
         console.error('Error searching destinations:', error);
-        // Fallback to mock search results
-        const mockResults = mockSearchDestinations(query);
+        // Fallback to mock filter
+        const queryLower = query.toLowerCase();
+        const mockResults = mockPopularDestinations
+          .filter(d =>
+            d.city.toLowerCase().includes(queryLower) ||
+            d.country.toLowerCase().includes(queryLower)
+          )
+          .slice(0, 5)
+          .map(d => ({ ...d, type: 'destination', id: `mock-${d.id}` }));
         setSearchResults(mockResults);
       } finally {
         setIsLoading(false);
       }
-    }, 500),
+    }, 400),
     []
   );
 
@@ -215,7 +225,9 @@ const DestinationStep = ({ selectedDestination, onSelect, onContinue }) => {
       image: destination.image || getDestinationImage(destination),
       type: destination.type || 'destination',
       flag: destination.flag,
-      display_name: `${destination.city || destination.name}, ${destination.country}`
+      display_name: `${destination.city || destination.name}, ${destination.country}`,
+      full: `${destination.city || destination.name}, ${destination.country}`,
+      coordinates: destination.coordinates || null,
     };
     
     onSelect(selected);
